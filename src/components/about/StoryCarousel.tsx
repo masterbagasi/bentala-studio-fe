@@ -110,10 +110,9 @@ function FlipPanel({
     const cycleMs = 5000;
     const stagger = (index / total) * cycleMs;
 
-    let timeoutId: ReturnType<typeof setTimeout>;
     let intervalId: ReturnType<typeof setInterval>;
 
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setFlipped((f) => !f);
       intervalId = setInterval(() => {
         setFlipped((f) => !f);

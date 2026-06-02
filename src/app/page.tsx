@@ -8,7 +8,6 @@ import {
   AbroadProductionTrip,
 } from "@/lib/types";
 import HomeIntro from "@/components/home/HomeIntro";
-import CollabScroll from "@/components/home/CollabScroll";
 import PortfolioMasonry from "@/components/home/PortfolioMasonry";
 import ServicesSpotlight from "@/components/home/ServicesSpotlight";
 import AbroadProduction from "@/components/home/AbroadProduction";
@@ -319,7 +318,7 @@ async function getData() {
 }
 
 export default async function HomePage() {
-  const { hero, services, socialLinks, collabs, portfolio, abroadTrips } =
+  const { hero, services, socialLinks, portfolio, abroadTrips } =
     await getData();
 
   return (

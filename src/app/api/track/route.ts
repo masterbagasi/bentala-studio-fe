@@ -32,7 +32,7 @@ const eventPayload = z.object({
   event_type: z.string().max(50),
   target: z.string().max(200).nullable(),
   path: z.string().max(2000).nullable(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const payloadSchema = z.discriminatedUnion("kind", [visitorPayload, pageviewPayload, eventPayload]);

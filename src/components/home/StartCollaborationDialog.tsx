@@ -245,7 +245,6 @@ export default function StartCollaborationDialog({
   returnDate,
   lang = "id",
 }: Props) {
-  const t = STRINGS[lang];
   const projectOptions = useMemo(
     () => buildProjectOptions(services, lang),
     [services, lang],

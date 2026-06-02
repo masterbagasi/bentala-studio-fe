@@ -41,7 +41,6 @@ export default function TripDetailIntro({
   services,
   abroadServices,
   leadWhatsappNumber,
-  studioLogoUrl,
 }: Props) {
   const [open, setOpen] = useState(false);
 

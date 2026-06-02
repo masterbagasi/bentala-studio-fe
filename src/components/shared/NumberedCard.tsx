@@ -8,7 +8,7 @@ interface Props {
   className?: string;
 }
 
-export function NumberedCard({ number, title, description, icon, className }: Props) {
+export function NumberedCard({ title, description, icon, className }: Props) {
   return (
     <div className={className}>
       {icon && <div className="mb-5">{icon}</div>}

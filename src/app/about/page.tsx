@@ -161,7 +161,7 @@ async function getData() {
 }
 
 export default async function AboutPage() {
-  const { about, team, services, heroLead, gallery } = await getData();
+  const { about, services, heroLead, gallery } = await getData();
 
   return (
     <>

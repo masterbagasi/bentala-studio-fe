@@ -106,7 +106,7 @@ export default function ValuesGrid({ values, title }: Props) {
           <div className="relative grid grid-cols-2 lg:grid-cols-3 gap-x-2 md:gap-x-3 gap-y-6 md:gap-y-8 pt-2">
             {v.map((value, i) => (
               <RevealOnScroll key={value.name + i} delay={i * 100}>
-                <PrincipleCard value={value} index={i} />
+                <PrincipleCard value={value} />
               </RevealOnScroll>
             ))}
           </div>
@@ -144,7 +144,7 @@ function pct(value: number, total: number) {
   return `${(value / total) * 100}%`;
 }
 
-function PrincipleCard({ value, index }: { value: Value; index: number }) {
+function PrincipleCard({ value }: { value: Value }) {
   // Single top-anchored text column. Title + description flow from the
   // top of the card's white area downward (justify-start), so the copy
   // never bunches against the bottom edge — important on mobile where

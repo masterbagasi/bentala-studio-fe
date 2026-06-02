@@ -129,43 +129,6 @@ function heroSafeZoneMask(cx: number, cy: number): number {
   return Math.min(xMask, yMask);
 }
 
-// 24 anchor positions arranged so consecutive indexes alternate
-// directions: top → right → left → bottom → top-right → bottom-left
-// → top-left → bottom-right → mid-variants → inner. Items emerge
-// at index `i % 24`, so successive tiles fly in different directions
-// and the overall fill covers atas/bawah/kanan/kiri/sudut/tengah.
-const SCATTER: Array<{ x: number; y: number; w: number; ar: string }> = [
-  // Cardinals
-  { x: 50, y: 6,  w: 14, ar: "3/4" }, // 0  top
-  { x: 92, y: 50, w: 13, ar: "4/5" }, // 1  right
-  { x: 8,  y: 50, w: 13, ar: "3/4" }, // 2  left
-  { x: 50, y: 92, w: 15, ar: "4/5" }, // 3  bottom
-  // Corners
-  { x: 88, y: 14, w: 16, ar: "1/1" }, // 4  top-right
-  { x: 12, y: 82, w: 14, ar: "3/4" }, // 5  bottom-left
-  { x: 12, y: 14, w: 16, ar: "4/5" }, // 6  top-left
-  { x: 88, y: 82, w: 15, ar: "1/1" }, // 7  bottom-right
-  // Mid-edges
-  { x: 30, y: 8,  w: 12, ar: "1/1" }, // 8  top-mid-left
-  { x: 70, y: 8,  w: 13, ar: "4/5" }, // 9  top-mid-right
-  { x: 95, y: 30, w: 13, ar: "3/4" }, // 10 right-upper
-  { x: 95, y: 70, w: 14, ar: "4/5" }, // 11 right-lower
-  { x: 70, y: 92, w: 13, ar: "1/1" }, // 12 bottom-mid-right
-  { x: 30, y: 92, w: 13, ar: "3/4" }, // 13 bottom-mid-left
-  { x: 5,  y: 70, w: 14, ar: "4/5" }, // 14 left-lower
-  { x: 5,  y: 30, w: 13, ar: "1/1" }, // 15 left-upper
-  // Inner ring (offset from headline)
-  { x: 25, y: 30, w: 11, ar: "4/5" }, // 16
-  { x: 75, y: 30, w: 12, ar: "1/1" }, // 17
-  { x: 75, y: 70, w: 13, ar: "3/4" }, // 18
-  { x: 25, y: 70, w: 12, ar: "4/5" }, // 19
-  // Inner near-headline (smaller so they don't dominate)
-  { x: 35, y: 22, w: 10, ar: "1/1" }, // 20
-  { x: 65, y: 78, w: 12, ar: "4/5" }, // 21
-  { x: 65, y: 22, w: 10, ar: "3/4" }, // 22
-  { x: 35, y: 78, w: 12, ar: "1/1" }, // 23
-];
-
 // Deterministic 0..1 pseudo-random keyed by (i, salt). Used to give
 // each tile its own jitter / lifetime variation without introducing
 // runtime randomness — same `i` always produces the same output, so
@@ -205,8 +168,7 @@ export default function HomeIntro({
   // Per-tile config — built once and shared between render (for
   // size / aspect-ratio of each DOM tile) and the rAF loop (for
   // anchor x/y, sliceStart, lifetime, fadeExp). Random anchors
-  // across the whole viewport (not the structured SCATTER grid)
-  // mean tiles bunch up and overlap freely — the "bertumpuk"
+  // across the whole viewport mean tiles bunch up and overlap freely — the "bertumpuk"
   // density the brief asks for.
   const tileConfigs = useMemo(() => {
     // Spread tile sliceStart evenly across the cycle (i / N) plus a
@@ -558,6 +520,7 @@ export default function HomeIntro({
     // the new container height.
   }, [
     N,
+    tileConfigs,
     BG_PHASE_VH,
     SERVICES_PHASE_VH,
     SERVICES_PHASE_START_VH,

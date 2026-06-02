@@ -132,7 +132,6 @@ export default function TripAbroadServices({ services }: Props = {}) {
   // Reset active selection if the underlying list shrinks below the
   // currently-focused index (e.g. admin deleted a row).
   const safeActiveIdx = Math.min(activeIdx, items.length - 1);
-  const active = items[safeActiveIdx];
 
   return (
     <section className="px-5 md:px-[52px] pt-16 md:pt-36 pb-16 md:pb-36">
