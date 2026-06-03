@@ -13,7 +13,11 @@ import ServicesSpotlight from "@/components/home/ServicesSpotlight";
 import AbroadProduction from "@/components/home/AbroadProduction";
 import RevealOnScroll from "@/components/shared/RevealOnScroll";
 
-export const revalidate = 30;
+// Render on every request so admin edits (hero, portfolio, services,
+// collaborations, etc.) reflect on the public site immediately. ISR
+// caching was dropping the latest edit behind a stale-while-revalidate
+// window; dynamic rendering reads fresh from Supabase each time.
+export const dynamic = "force-dynamic";
 
 const fallbackHero: HeroData = {
   id: "1",

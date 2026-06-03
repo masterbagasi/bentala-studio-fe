@@ -5,7 +5,9 @@ import PageHero from "@/components/about/PageHero";
 import NewsFeed from "./NewsFeed";
 import FollowBand from "@/components/news/FollowBand";
 
-export const revalidate = 3600;
+// Render on every request so newly published / edited news posts
+// appear on the public site immediately (ISR was lagging behind).
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   if (isSupabaseConfigured && supabase) {

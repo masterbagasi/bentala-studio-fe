@@ -13,7 +13,9 @@ import TripAbroadServices from "@/components/abroad/TripAbroadServices";
 import TripTermsConditions from "@/components/abroad/TripTermsConditions";
 import PortfolioMasonry from "@/components/home/PortfolioMasonry";
 
-export const revalidate = 30;
+// Render on every request so admin edits to a trip reflect on the
+// public site immediately (ISR was lagging a version behind).
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: { slug: string };

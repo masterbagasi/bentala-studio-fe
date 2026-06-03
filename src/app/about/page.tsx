@@ -6,10 +6,12 @@ import ValuesGrid from "@/components/about/ValuesGrid";
 import TeamGallery from "@/components/about/TeamGallery";
 import CtaBand from "@/components/about/CtaBand";
 
-// Cache window for the About page. Kept short so admin edits
-// (headline, vision/mission text, values, photos, dst) reflect
-// on the public site within ~10s of saving in the dashboard.
-export const revalidate = 10;
+// Render on every request so admin edits (headline, vision/mission
+// text, values, hero banner, photos, dst) reflect on the public site
+// immediately. ISR caching was serving a stale-while-revalidate copy
+// that lagged a version behind; dynamic rendering reads fresh from
+// Supabase each time.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   if (isSupabaseConfigured && supabase) {
