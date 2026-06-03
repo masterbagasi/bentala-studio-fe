@@ -2,7 +2,6 @@
 
 import { ReactNode, createElement, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import DOMPurify from "isomorphic-dompurify";
 import sanitizeHtml from "sanitize-html";
 import { AboutData } from "@/lib/types";
 import RevealOnScroll from "@/components/shared/RevealOnScroll";
@@ -22,33 +21,18 @@ function sanitizeKeepStyles(
   html: string,
   config: { ALLOWED_TAGS: string[]; ALLOWED_ATTR: string[] },
 ): string {
-  // Server: sanitize with the Node-native `sanitize-html` (htmlparser2,
-  // no jsdom). This keeps `isomorphic-dompurify` → jsdom OUT of the
-  // serverless render path — jsdom's transitive `@exodus/bytes` throws
-  // ERR_REQUIRE_ESM on Vercel's Node, which 500'd this page. Inline
-  // styles are preserved verbatim (no `allowedStyles` filter) to match
-  // the client DOMPurify-keep-styles output; dangerous tags/handlers
-  // (script, on*, javascript: URLs) are still stripped, so this is a
-  // real sanitization pass, not a trust-the-input bypass.
-  if (typeof window === "undefined") {
-    return sanitizeHtml(html, {
-      allowedTags: config.ALLOWED_TAGS,
-      allowedAttributes: { "*": config.ALLOWED_ATTR },
-    });
-  }
-  const styles: string[] = [];
-  const stashed = html.replace(/\sstyle="([^"]*)"/gi, (_match, value) => {
-    const idx = styles.push(value) - 1;
-    return ` data-bsi-style="${idx}"`;
-  });
-  const cleaned = DOMPurify.sanitize(stashed, {
-    ALLOWED_TAGS: config.ALLOWED_TAGS,
-    ALLOWED_ATTR: [...config.ALLOWED_ATTR, "data-bsi-style"],
-  });
-  return cleaned.replace(/\sdata-bsi-style="(\d+)"/g, (_m, idx) => {
-    const value = styles[Number(idx)];
-    if (!value) return "";
-    return ` style="${value.replace(/"/g, "&quot;")}"`;
+  // Sanitize with the Node-native `sanitize-html` (htmlparser2) on BOTH
+  // server and client. Critically this avoids importing
+  // `isomorphic-dompurify`, whose module init eagerly loads jsdom on the
+  // server — jsdom's transitive `@exodus/bytes` / html-encoding-sniffer
+  // throws ERR_REQUIRE_ESM on Vercel's Node, which 500'd this page at
+  // module-load (before any render). Inline styles are kept verbatim (no
+  // `allowedStyles` filter) so font-size/color survive; dangerous tags
+  // and attributes (script, on*, javascript: URLs) are stripped, so this
+  // is a real sanitization pass.
+  return sanitizeHtml(html, {
+    allowedTags: config.ALLOWED_TAGS,
+    allowedAttributes: { "*": config.ALLOWED_ATTR },
   });
 }
 
