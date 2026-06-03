@@ -386,6 +386,10 @@ export default function PortfolioMasonry({
   const [colCount, setColCount] = useState(0);
   const [rowHeight, setRowHeight] = useState(PORTFOLIO_MIN_COL_WIDTH);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  // Compact mode: once the sticky portfolio header is pinned at the very
+  // top of the viewport, shrink the banner and pull the filter pills up
+  // so there's more room to browse the grid.
+  const [compact, setCompact] = useState(false);
 
   const loaderRef = useRef<HTMLDivElement>(null);
   const poolRef = useRef<PortfolioItem[]>([]);
@@ -598,6 +602,47 @@ export default function PortfolioMasonry({
     };
   }, []);
 
+  // Drive compact mode from scroll position. Anchored to the section's
+  // `offsetTop` (the banner lives INSIDE the section, so shrinking it
+  // never changes offsetTop) rather than getBoundingClientRect — that
+  // decoupling is what kills the jitter: the trigger point can't move
+  // when the banner resizes, so it never flip-flops. rAF throttles and
+  // an 80px hysteresis band keeps the toggle from chattering at the
+  // boundary. When the page is too short to ever pin the header (few
+  // The banner always STARTS at full size and only shrinks once the
+  // user scrolls the header up to the top. The section carries a
+  // min-height (below) so even a short grid has enough scroll room to
+  // reach this trigger — so it shrinks "in any condition" without ever
+  // starting small.
+  useEffect(() => {
+    const section = portfolioSnapRef.current;
+    if (!section || hideHeader) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      // The header pins at the top once scrollY reaches `pin`
+      // (section.offsetTop). The banner stays FULL at that moment and
+      // only collapses after the user keeps scrolling past it: engage
+      // 160px beyond the pin, release at 40px — the gap is a hysteresis
+      // band that stops the toggle from chattering.
+      const pin = section.offsetTop;
+      setCompact((prev) =>
+        prev ? window.scrollY >= pin + 40 : window.scrollY >= pin + 160,
+      );
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [hideHeader]);
+
   const filters = [
     { key: "all", label: "All" },
     { key: "video", label: "Video" },
@@ -609,7 +654,16 @@ export default function PortfolioMasonry({
   const heroHeader = headerImageUrl ?? PORTFOLIO_HEADER_FALLBACK;
 
   return (
-    <section ref={portfolioSnapRef} className="bg-bg" id="portfolio">
+    <section
+      ref={portfolioSnapRef}
+      className="bg-bg"
+      id="portfolio"
+      // Guarantee enough scroll room PAST the pin point so the banner
+      // can first arrive full-size and then collapse on further scroll,
+      // even when the grid is short (few items). Extra 240px covers the
+      // post-pin engage distance + a little headroom.
+      style={hideHeader ? undefined : { minHeight: "calc(100svh + 240px)" }}
+    >
       {/* Header — banner with auto-focus on the actual object inside
           the uploaded image. PortfolioBanner scans the file to find
           the bounding box of non-transparent / non-white pixels,
@@ -628,15 +682,34 @@ export default function PortfolioMasonry({
           pb-8 md:pb-12 keeps the bottom gap between filter pills
           and the grid as part of the pinned slab. */}
       {!hideHeader && (
-        <div className="sticky top-0 z-40 bg-bg pt-[124px] pb-8 md:pb-12">
+        <div
+          className={`sticky top-0 z-40 bg-bg pt-[124px] transition-[padding] duration-500 ease-out ${
+            compact ? "pb-4 md:pb-5" : "pb-8 md:pb-12"
+          }`}
+        >
           <RevealOnScroll className="block">
             <div className="px-5 md:px-[52px]">
-              <PortfolioBanner src={heroHeader} />
+              {/* Banner shrinks (and centers) once the header is pinned;
+                  height follows its aspect ratio, so the filter row below
+                  rises with it. */}
+              <div
+                className="mx-auto transition-[max-width] duration-500 ease-out"
+                // Compact banner stays noticeably WIDER than the filter
+                // bar (max-w-3xl = 768px) so it still reads as the hero,
+                // just smaller. Full width until the scroll trigger.
+                style={{ maxWidth: compact ? "min(80%, 1080px)" : "100%" }}
+              >
+                <PortfolioBanner src={heroHeader} />
+              </div>
             </div>
           </RevealOnScroll>
           {!lockedFilter && (
             <RevealOnScroll className="block" delay={180}>
-              <div className="cinematic-reveal px-5 md:px-[52px] mt-8 md:mt-12">
+              <div
+                className={`cinematic-reveal px-5 md:px-[52px] transition-[margin] duration-500 ease-out ${
+                  compact ? "mt-3 md:mt-4" : "mt-8 md:mt-12"
+                }`}
+              >
                 <div className="slate-cta-group flex items-stretch gap-1 p-1.5 rounded-full border border-white/[0.12] bg-white/[0.02] max-w-3xl mx-auto">
                   {filters.map((f) => (
                     <button
