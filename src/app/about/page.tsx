@@ -6,11 +6,12 @@ import ValuesGrid from "@/components/about/ValuesGrid";
 import TeamGallery from "@/components/about/TeamGallery";
 import CtaBand from "@/components/about/CtaBand";
 
-// TEMP: reverted to short-window ISR to stop a request-time 500 that
-// only reproduces on Vercel's serverless runtime (build-time render is
-// fine, so ISR serves a working page). Investigating the dynamic-render
-// error via /api/debug-about before re-enabling force-dynamic.
-export const revalidate = 30;
+// Render on every request so admin edits reflect immediately. The
+// request-time 500 was an ERR_REQUIRE_ESM from jsdom's transitive
+// `@exodus/bytes` (pulled in by isomorphic-dompurify), which only works
+// on Node >=22.12's require(esm). Fixed by pinning engines.node to 22.x
+// (see package.json); dynamic rendering is safe again.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   if (isSupabaseConfigured && supabase) {
