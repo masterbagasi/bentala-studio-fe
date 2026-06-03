@@ -6,12 +6,11 @@ import ValuesGrid from "@/components/about/ValuesGrid";
 import TeamGallery from "@/components/about/TeamGallery";
 import CtaBand from "@/components/about/CtaBand";
 
-// Render on every request so admin edits (headline, vision/mission
-// text, values, hero banner, photos, dst) reflect on the public site
-// immediately. ISR caching was serving a stale-while-revalidate copy
-// that lagged a version behind; dynamic rendering reads fresh from
-// Supabase each time.
-export const dynamic = "force-dynamic";
+// TEMP: reverted to short-window ISR to stop a request-time 500 that
+// only reproduces on Vercel's serverless runtime (build-time render is
+// fine, so ISR serves a working page). Investigating the dynamic-render
+// error via /api/debug-about before re-enabling force-dynamic.
+export const revalidate = 30;
 
 export async function generateMetadata(): Promise<Metadata> {
   if (isSupabaseConfigured && supabase) {
