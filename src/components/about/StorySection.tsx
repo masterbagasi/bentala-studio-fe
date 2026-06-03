@@ -3,6 +3,7 @@
 import { ReactNode, createElement, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 import { AboutData } from "@/lib/types";
 import RevealOnScroll from "@/components/shared/RevealOnScroll";
 
@@ -21,15 +22,19 @@ function sanitizeKeepStyles(
   html: string,
   config: { ALLOWED_TAGS: string[]; ALLOWED_ATTR: string[] },
 ): string {
-  // Server: the source is the admin's authenticated Tiptap editor
-  // (trusted), so we skip DOMPurify here and return the markup as-is.
-  // This keeps `isomorphic-dompurify` → jsdom out of the serverless
-  // render path, whose transitive `@exodus/bytes` throws ERR_REQUIRE_ESM
-  // on Vercel's Node. The client re-sanitizes on hydration for
-  // defense-in-depth (the dangerouslySetInnerHTML site uses
-  // suppressHydrationWarning, so the server/client diff is benign).
+  // Server: sanitize with the Node-native `sanitize-html` (htmlparser2,
+  // no jsdom). This keeps `isomorphic-dompurify` → jsdom OUT of the
+  // serverless render path — jsdom's transitive `@exodus/bytes` throws
+  // ERR_REQUIRE_ESM on Vercel's Node, which 500'd this page. Inline
+  // styles are preserved verbatim (no `allowedStyles` filter) to match
+  // the client DOMPurify-keep-styles output; dangerous tags/handlers
+  // (script, on*, javascript: URLs) are still stripped, so this is a
+  // real sanitization pass, not a trust-the-input bypass.
   if (typeof window === "undefined") {
-    return html;
+    return sanitizeHtml(html, {
+      allowedTags: config.ALLOWED_TAGS,
+      allowedAttributes: { "*": config.ALLOWED_ATTR },
+    });
   }
   const styles: string[] = [];
   const stashed = html.replace(/\sstyle="([^"]*)"/gi, (_match, value) => {
