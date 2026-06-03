@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import BackToTop from "@/components/layout/BackToTop";
 import AnalyticsTracker from "@/components/shared/AnalyticsTracker";
+import RealtimeRefresh from "@/components/shared/RealtimeRefresh";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export const metadata: Metadata = {
@@ -68,6 +69,10 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <AnalyticsTracker />
         </Suspense>
+        {/* Live-refresh the open page when admin content changes land in
+            Supabase (Realtime). Pairs with the pages' force-dynamic render
+            so updates appear without a manual reload. */}
+        <RealtimeRefresh />
         <Navbar
           logoUrl={logoUrl}
           hideHome={hideHome}
