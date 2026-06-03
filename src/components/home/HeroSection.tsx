@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 import { HeroData, Service, SocialLink } from "@/lib/types";
 import StartCollaborationDialog from "@/components/home/StartCollaborationDialog";
 import { trackEvent } from "@/lib/tracker";
 
+// Node-native sanitizer (htmlparser2). Avoids `isomorphic-dompurify`,
+// whose eager jsdom load throws ERR_REQUIRE_ESM on Vercel's Node.
 const HEADLINE_SANITIZE_OPTS = {
-  ALLOWED_TAGS: ["span", "br", "b", "strong", "em", "i", "u"],
-  ALLOWED_ATTR: ["style", "class"],
+  allowedTags: ["span", "br", "b", "strong", "em", "i", "u"],
+  allowedAttributes: { "*": ["style", "class"] },
 };
+
+function sanitizeHeadline(html: string): string {
+  return sanitizeHtml(html, HEADLINE_SANITIZE_OPTS);
+}
 
 interface Props {
   hero: HeroData;
@@ -49,13 +55,13 @@ export default function HeroSection({
   const safeHeadline = useMemo(() => {
     // Convert plain newlines into <br> so admin's multi-line input is preserved.
     const withBreaks = (hero.headline ?? "").replace(/\r\n|\n/g, "<br>");
-    return DOMPurify.sanitize(withBreaks, HEADLINE_SANITIZE_OPTS);
+    return sanitizeHeadline(withBreaks);
   }, [hero.headline]);
 
   const safeSubtitle = useMemo(() => {
     // Subtitle is now rich HTML too (from the same Tiptap editor).
     const withBreaks = (hero.subtitle ?? "").replace(/\r\n|\n/g, "<br>");
-    return DOMPurify.sanitize(withBreaks, HEADLINE_SANITIZE_OPTS);
+    return sanitizeHeadline(withBreaks);
   }, [hero.subtitle]);
 
   // Responsive headline size. Absolute floor (20px) + 5vw scaling

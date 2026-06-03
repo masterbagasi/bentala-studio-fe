@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 /**
  * Renders an admin-editable headline string. Source is sanitised
@@ -105,18 +105,14 @@ function sanitizeKeepStyles(
   html: string,
   config: { ALLOWED_TAGS: string[]; ALLOWED_ATTR: string[] },
 ): string {
-  const styles: string[] = [];
-  const stashed = html.replace(/\sstyle="([^"]*)"/gi, (_match, value) => {
-    const idx = styles.push(value) - 1;
-    return ` data-bsi-style="${idx}"`;
-  });
-  const cleaned = DOMPurify.sanitize(stashed, {
-    ALLOWED_TAGS: config.ALLOWED_TAGS,
-    ALLOWED_ATTR: [...config.ALLOWED_ATTR, "data-bsi-style"],
-  });
-  return cleaned.replace(/\sdata-bsi-style="(\d+)"/g, (_m, idx) => {
-    const value = styles[Number(idx)];
-    if (!value) return "";
-    return ` style="${value.replace(/"/g, "&quot;")}"`;
+  // Use the Node-native `sanitize-html` (htmlparser2) instead of
+  // `isomorphic-dompurify`. The latter eagerly loads jsdom at server
+  // module init, whose transitive `@exodus/bytes` throws ERR_REQUIRE_ESM
+  // on Vercel's Node and 500'd every page that pulls this component in
+  // (CtaBand, ValuesGrid → /about). Inline styles are kept verbatim;
+  // scripts / on* handlers / javascript: URLs are stripped.
+  return sanitizeHtml(html, {
+    allowedTags: config.ALLOWED_TAGS,
+    allowedAttributes: { "*": config.ALLOWED_ATTR },
   });
 }
