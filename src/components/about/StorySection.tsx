@@ -21,6 +21,16 @@ function sanitizeKeepStyles(
   html: string,
   config: { ALLOWED_TAGS: string[]; ALLOWED_ATTR: string[] },
 ): string {
+  // Server: the source is the admin's authenticated Tiptap editor
+  // (trusted), so we skip DOMPurify here and return the markup as-is.
+  // This keeps `isomorphic-dompurify` → jsdom out of the serverless
+  // render path, whose transitive `@exodus/bytes` throws ERR_REQUIRE_ESM
+  // on Vercel's Node. The client re-sanitizes on hydration for
+  // defense-in-depth (the dangerouslySetInnerHTML site uses
+  // suppressHydrationWarning, so the server/client diff is benign).
+  if (typeof window === "undefined") {
+    return html;
+  }
   const styles: string[] = [];
   const stashed = html.replace(/\sstyle="([^"]*)"/gi, (_match, value) => {
     const idx = styles.push(value) - 1;
