@@ -79,8 +79,7 @@ export default function CtaBand({ services, leadWhatsappNumber, contactEmail, ti
           <RichHeadline
             source={headline}
             as="h2"
-            className="font-sans uppercase font-bold text-white leading-[0.92] tracking-[-0.015em] text-center"
-            style={{ fontSize: "clamp(30px, 7.5vw, 120px)" }}
+            className="font-sans uppercase font-bold text-white leading-[0.98] md:leading-[0.92] tracking-[-0.015em] text-center break-words text-[clamp(22px,5.5vw,36px)] md:text-[clamp(48px,8vw,128px)]"
             boldStyle={BOLD_STYLE}
             italicStyle={ITALIC_STYLE}
           />
