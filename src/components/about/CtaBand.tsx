@@ -80,7 +80,7 @@ export default function CtaBand({ services, leadWhatsappNumber, contactEmail, ti
             source={headline}
             as="h2"
             className="font-sans uppercase font-bold text-white leading-[0.92] tracking-[-0.015em] text-center"
-            style={{ fontSize: "clamp(34px, 8vw, 128px)" }}
+            style={{ fontSize: "clamp(30px, 7.5vw, 120px)" }}
             boldStyle={BOLD_STYLE}
             italicStyle={ITALIC_STYLE}
           />
