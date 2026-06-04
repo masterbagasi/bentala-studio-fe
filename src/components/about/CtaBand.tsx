@@ -29,6 +29,20 @@ const BOLD_STYLE =
 const ITALIC_STYLE =
   "font-family:Georgia,serif;font-style:italic;font-weight:500;color:#0B3DE7;letter-spacing:-0.02em;";
 
+// The admin's CTA title carries fixed inline font-sizes (80px / 96px on
+// the spans) that override any class on the heading, so on phones the
+// copy stays huge and clips. Rewrite each `font-size: Npx` to
+// `min(Npx, (N/divisor)vw)` — original px on wide desktops, shrinking
+// proportionally on narrow screens. divisor 15 → 96px lands ~25px on a
+// 390px phone, ~80px caps held above ~1500px.
+function responsiveFontSizes(html: string, divisor = 15): string {
+  return html.replace(
+    /font-size:\s*([\d.]+)px/gi,
+    (_m, px) =>
+      `font-size:min(${px}px, ${(Number(px) / divisor).toFixed(2)}vw)`,
+  );
+}
+
 /**
  * Closing CTA — restructured from a center-aligned slab into a
  * cinematic "open envelope" composition: oversized split headline
@@ -39,7 +53,7 @@ const ITALIC_STYLE =
 export default function CtaBand({ services, leadWhatsappNumber, contactEmail, title }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const email = (contactEmail && contactEmail.trim()) || DEFAULT_CONTACT_EMAIL;
-  const headline = (title && title.trim()) || DEFAULT_TITLE;
+  const headline = responsiveFontSizes((title && title.trim()) || DEFAULT_TITLE);
   // Gmail web-compose URL — opens the user's Gmail account in a
   // new tab with the To: field already filled. Falls through to
   // mailto: when Gmail is blocked or the user uses a different
@@ -79,7 +93,7 @@ export default function CtaBand({ services, leadWhatsappNumber, contactEmail, ti
           <RichHeadline
             source={headline}
             as="h2"
-            className="font-sans uppercase font-bold text-white leading-[0.98] md:leading-[0.92] tracking-[-0.015em] text-center break-words text-[clamp(20px,5vw,30px)]"
+            className="font-sans uppercase font-bold text-white leading-[0.98] md:leading-[0.92] tracking-[-0.015em] text-center break-words text-[clamp(26px,6vw,84px)]"
             boldStyle={BOLD_STYLE}
             italicStyle={ITALIC_STYLE}
           />
