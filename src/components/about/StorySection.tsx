@@ -45,6 +45,18 @@ function looksLikeHtml(s: string): boolean {
   return /<\/?[a-z][\s\S]*?>/i.test(s);
 }
 
+// Make the editor's fixed inline `font-size: Npx` responsive so big
+// desktop sizes (the vision/mission/edge copy is 32px) ease down on
+// narrow screens instead of cramping the column. `min(Npx, (N/divisor)vw)`
+// stays at the original px on wide viewports and shrinks below ~700px.
+function responsiveFontSizes(html: string, divisor: number): string {
+  return html.replace(
+    /font-size:\s*([\d.]+)px/gi,
+    (_m, px) =>
+      `font-size:min(${px}px, ${(Number(px) / divisor).toFixed(2)}vw)`,
+  );
+}
+
 // Unwraps Tiptap's `<p>` blocks and re-emits each as its own
 // `display:block` line wrapper. Critically, when the inner
 // content carries a custom `font-size` (set via the rich text
@@ -331,6 +343,8 @@ export default function StorySection({ about }: Props) {
   // completes; only after the glide settles do new user inputs
   // re-arm the trigger.
   const videoSnapRef = useRef(null as HTMLDivElement | null);
+  const videoFrameRef = useRef(null as HTMLDivElement | null);
+  const entitiesRef = useRef(null as HTMLDivElement | null);
   useEffect(() => {
     let raf = 0;
     let snapAnimRaf = 0;
@@ -364,7 +378,12 @@ export default function StorySection({ about }: Props) {
       snapAnimRaf = requestAnimationFrame(tick);
     };
 
-    function check() {
+    const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
+
+    // Desktop — original single snap: pull the video region's top up to
+    // the viewport top on the way down, glide back to the hero on the
+    // way up.
+    function checkDesktop() {
       const video = videoSnapRef.current;
       if (!video) return;
       const rect = video.getBoundingClientRect();
@@ -372,23 +391,14 @@ export default function StorySection({ about }: Props) {
       const scrollingDown = window.scrollY > lastY;
       const scrollingUp = window.scrollY < lastY;
 
-      // Down-snap zone — the moment video's top dips below the
-      // viewport top (between 1% and 99% of viewport height),
-      // pull it up to the top.
       const inDownSnapZone =
         rect.top > viewportH * 0.01 && rect.top < viewportH * 0.99;
-
-      // Up-snap zone — once the video has been parked at (or just
-      // above) the viewport top, scrolling up reverses the action
-      // and glides the page back to the hero. Triggered when the
-      // video's top is within ±15% of the viewport top.
       const inUpSnapZone =
         rect.top < viewportH * 0.15 && rect.top > -viewportH * 0.15;
 
       if (scrollingDown && armed && !snapping && inDownSnapZone) {
         armed = false;
-        const targetY = window.scrollY + rect.top;
-        animateScrollTo(targetY, 450);
+        animateScrollTo(window.scrollY + rect.top, 450);
       } else if (
         scrollingUp &&
         armed &&
@@ -396,29 +406,103 @@ export default function StorySection({ about }: Props) {
         inUpSnapZone &&
         window.scrollY > 0
       ) {
-        // Reverse snap — glide back to the very top of the page
-        // (hero fully visible). Target = 0 so the page lands at
-        // scrollTop = 0 regardless of where the video naturally
-        // sits in the document.
         armed = false;
         animateScrollTo(0, 450);
       }
 
-      // Re-arm once the user has clearly left BOTH snap zones —
-      // i.e., they've scrolled past the video downward (past
-      // entities/philosophy) OR they've made it back above the
-      // video into the hero region. Without this, repeated snaps
-      // would re-fire as the page settles into target position.
       if (!armed && !snapping && !inDownSnapZone && !inUpSnapZone) {
         armed = true;
       }
       lastY = window.scrollY;
     }
 
+    // Mobile — two-stage snap. Stage 1: when the 16:9 video rises into
+    // view it locks to the VERTICAL CENTER of the screen (video alone).
+    // Stage 2: a small further scroll down jumps the entity cards
+    // (Bentala Project & Studio) straight to the top. Scrolling back up
+    // reverses: entities → video centered → hero. A dead-zone around the
+    // centered position keeps it from oscillating.
+    function checkMobile() {
+      const frame = videoFrameRef.current;
+      if (!frame) return;
+      const vh = window.innerHeight || 1;
+      const vr = frame.getBoundingClientRect();
+      const vCenter = vr.top + vr.height / 2; // video midpoint in viewport
+      const down = window.scrollY > lastY + 1;
+      const up = window.scrollY < lastY - 1;
+      const NAV = 76; // clear the fixed navbar when parking entities at top
+
+      if (armed && !snapping) {
+        if (down) {
+          // video below center, rising → center it
+          if (vCenter > vh * 0.55 && vCenter < vh * 0.96) {
+            armed = false;
+            animateScrollTo(window.scrollY + (vCenter - vh / 2), 420);
+          }
+          // pushed a little past center → entities to the top. Only
+          // while the video centre is still in the upper part of the
+          // viewport (0.05–0.45vh); once it has scrolled above that we
+          // RELEASE so the user can keep scrolling down past the entity
+          // cards into the next section (no re-snap trap).
+          else if (
+            entitiesRef.current &&
+            vCenter <= vh * 0.45 &&
+            vCenter > vh * 0.05
+          ) {
+            armed = false;
+            const er = entitiesRef.current.getBoundingClientRect();
+            animateScrollTo(window.scrollY + er.top - NAV, 480);
+          }
+        } else if (up) {
+          // coming back up from entities → re-center the video
+          if (vCenter < vh * 0.45 && vr.bottom > vh * 0.15) {
+            armed = false;
+            animateScrollTo(window.scrollY + (vCenter - vh / 2), 420);
+          }
+          // above the centered video → glide back to the hero
+          else if (vCenter > vh * 0.55 && vCenter < vh * 1.2 && window.scrollY > 0) {
+            armed = false;
+            animateScrollTo(0, 450);
+          }
+        }
+      }
+
+      // Re-arm whenever settled (no snap in flight). The 0.45–0.55
+      // dead-zone above means the centered resting state fires nothing,
+      // so re-arming here just readies the next gesture.
+      if (!armed && !snapping) armed = true;
+      lastY = window.scrollY;
+    }
+
+    // Scroll-linked zoom: the video frame is largest (scale 1) when it
+    // sits at the vertical center and shrinks toward the edges, so it
+    // zooms IN as it rises into view and zooms OUT as it scrolls away.
+    // Mobile only; set straight on the node (no re-render). Desktop is
+    // left untransformed.
+    function updateZoom() {
+      const frame = videoFrameRef.current;
+      if (!frame) return;
+      if (!isMobile()) {
+        frame.style.transform = "";
+        return;
+      }
+      const vh = window.innerHeight || 1;
+      const r = frame.getBoundingClientRect();
+      const center = r.top + r.height / 2;
+      const norm = Math.min(1, Math.abs(center - vh / 2) / (vh / 2));
+      const scale = 1 - norm * 0.16; // 1.0 centered → 0.84 at the edges
+      frame.style.transform = `scale(${scale.toFixed(3)})`;
+    }
+
     function onScroll() {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(check);
+      raf = requestAnimationFrame(() => {
+        updateZoom();
+        (isMobile() ? checkMobile : checkDesktop)();
+      });
     }
+    // Set the initial scale before the first scroll so it doesn't pop.
+    updateZoom();
 
     // Lock user scroll input DURING the snap animation by
     // preventDefault-ing wheel/touchmove. Without this, the
@@ -616,21 +700,30 @@ export default function StorySection({ about }: Props) {
             ref={videoSnapRef}
             className="px-5 md:px-[52px] pt-24 md:pt-36 pb-16 md:pb-20 flex flex-col gap-10 md:gap-14"
           >
-            {/* Video — full width 16:9, same size as before. */}
+            {/* Video stays 16:9. On mobile it gets its own ~full-screen
+                section with the frame centered vertically, so a single
+                screen shows only the video. Desktop: inline 16:9 card as
+                before. */}
             <RevealOnScroll delay={80} className="block">
-              <div
-                className="relative w-full bg-black overflow-hidden rounded-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7)]"
-                style={{ aspectRatio: "16 / 9" }}
-              >
-                <SeamlessLoopVideo src={about.story_video_url} />
+              <div className="flex items-center justify-center min-h-[100svh] md:block md:min-h-0">
+                <div
+                  ref={videoFrameRef}
+                  className="relative w-full bg-black overflow-hidden rounded-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7)] aspect-[16/9] will-change-transform"
+                >
+                  <SeamlessLoopVideo src={about.story_video_url} />
+                </div>
               </div>
             </RevealOnScroll>
 
             {/* Entity cards — side-by-side on md+ (Project on left,
                 Studio on right) so the two halves read as paired
                 lockups. Slide-in animation enters from opposite
-                edges to reinforce the duality. */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                edges to reinforce the duality. On mobile this is the
+                stage-2 snap target (jumps to the top after the video). */}
+            <div
+              ref={entitiesRef}
+              className="scroll-mt-[76px] grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6"
+            >
               {entities.map((entity, i) => (
                 <RevealOnScroll
                   key={entity.name}
@@ -754,7 +847,10 @@ export default function StorySection({ about }: Props) {
                     }`}
                   >
                     {(() => {
-                      const raw = item.text ?? "";
+                      // Scale the editor's inline font-size down on
+                      // mobile so the vision/mission/edge copy isn't
+                      // cramped against the column edges.
+                      const raw = responsiveFontSizes(item.text ?? "", 7);
                       // Line-height for the paragraph as a whole
                       // defaults to 1.55 via `leading-[1.55]`;
                       // inner spans with their own `line-height`
