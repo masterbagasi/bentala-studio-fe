@@ -421,3 +421,17 @@ body {
   -webkit-text-stroke: 2px #0B3DE7;
   color: transparent;
 }
+
+/* ─── MOBILE SCROLL-SNAP (About story video) ───
+   Native, momentum-friendly snapping on phones only. The About page
+   tags the video block `snap-center` and the entity cards `snap-start`;
+   proximity means it only snaps when you settle near a point, so the
+   rest of the page (and other routes, which have no snap targets)
+   scrolls normally. Desktop has no snap-type, so its JS snap is
+   unaffected. */
+@media (max-width: 767px) {
+  html {
+    scroll-snap-type: y proximity;
+    scroll-padding-top: 76px;
+  }
+}

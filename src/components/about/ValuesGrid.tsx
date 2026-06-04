@@ -103,7 +103,7 @@ export default function ValuesGrid({ values, title }: Props) {
             </div>
           </RevealOnScroll>
 
-          <div className="relative grid grid-cols-2 lg:grid-cols-3 gap-x-2 md:gap-x-3 gap-y-6 md:gap-y-8 pt-2">
+          <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-2 md:gap-x-3 gap-y-4 md:gap-y-8 pt-2">
             {v.map((value, i) => (
               <RevealOnScroll key={value.name + i} delay={i * 100}>
                 <PrincipleCard value={value} />
@@ -116,56 +116,25 @@ export default function ValuesGrid({ values, title }: Props) {
   );
 }
 
-// Source asset coordinates (Shape Polos / shape 5). The number
-// badge present in the source has been removed per the brief — the
-// burst now reads as a clean stacked-paper silhouette without the
-// black disc anchor.
-const SHAPE_W = 440;
+// Source asset coordinates (Shape Polos / shape 5), used to crop the
+// SVG viewBox so the silhouette sits flush with the card edges (md+).
 const SHAPE_H = 205;
-
-// The source asset has empty whitespace baked into its viewBox
-// (~33px on the left, ~46px on the right where the silhouette
-// doesn't reach). Cropping the rendered viewBox to those bounds
-// makes the visible shape flush with the card container — which in
-// turn makes the section's left/right edges align with the
-// Vision/Mission rows above (no perceived inner margin).
 const CONTENT_LEFT = 33.4;
 const CONTENT_RIGHT = 393.7;
 const CONTENT_W = CONTENT_RIGHT - CONTENT_LEFT; // 360.3
 
-// Symmetric horizontal padding measured in CROPPED viewBox units
-// (CONTENT_W). Because the SVG viewBox now starts at x=CONTENT_LEFT
-// and ends at x=CONTENT_RIGHT, the % values map directly to the
-// card container — left and right insets land at the same distance
-// from each card edge.
-const TEXT_INSET_X = 40;
-
-function pct(value: number, total: number) {
-  return `${(value / total) * 100}%`;
-}
-
 function PrincipleCard({ value }: { value: Value }) {
-  // Single top-anchored text column. Title + description flow from the
-  // top of the card's white area downward (justify-start), so the copy
-  // never bunches against the bottom edge — important on mobile where
-  // the narrow card wraps the description into more lines. Sits a touch
-  // lower on desktop (md) where cards are wider and need less top lift.
-  const textInsetX = pct(TEXT_INSET_X, CONTENT_W);
-
   return (
-    <div
-      className="relative w-full"
-      // 3-col grid (3 cards × 2 rows) with a tall aspect ratio
-      // (440:280) so each card carries enough vertical weight to
-      // sit visually alongside the Vision/Mission editorial rows
-      // above. The silhouette stretches ~36% vertically from the
-      // source — slants steepen slightly but the layered-burst still
-      // reads cleanly at 3-up sizes.
-      style={{ aspectRatio: `${SHAPE_W} / 280` }}
-    >
+    // Mobile: a plain white rounded card that grows to fit the copy
+    // (single column, text in normal flow) — the fixed-aspect speech
+    // burst was far shorter than the text on narrow screens, so the
+    // absolutely-positioned copy overflowed and overlapped. Desktop
+    // (md+) keeps the layered speech-burst silhouette with the copy
+    // absolutely centered inside it.
+    <div className="relative w-full bg-white rounded-3xl md:bg-transparent md:rounded-none md:aspect-[440/280]">
       <svg
         aria-hidden="true"
-        className="absolute inset-0 w-full h-full drop-shadow-[0_20px_42px_rgba(0,0,0,0.55)]"
+        className="hidden md:block absolute inset-0 w-full h-full drop-shadow-[0_20px_42px_rgba(0,0,0,0.55)]"
         viewBox={`${CONTENT_LEFT} 0 ${CONTENT_W} ${SHAPE_H}`}
         preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -195,20 +164,11 @@ function PrincipleCard({ value }: { value: Value }) {
           the card's white area, so the copy sits balanced (not bunched
           at the top or bottom) regardless of how many lines the
           description wraps to on narrow mobile cards. */}
-      <div
-        className="absolute top-[7%] bottom-[7%] flex flex-col justify-center gap-[0.5em] pointer-events-none"
-        style={{ left: textInsetX, right: textInsetX }}
-      >
-        <h3
-          className="font-sans font-extrabold uppercase text-black leading-[1.02] tracking-[0.005em]"
-          style={{ fontSize: "clamp(26px, 3vw, 46px)" }}
-        >
+      <div className="relative flex flex-col gap-2 px-7 py-8 pointer-events-none md:absolute md:inset-0 md:gap-[0.5em] md:justify-center md:px-[11%] md:py-[7%]">
+        <h3 className="font-sans font-extrabold uppercase text-black leading-[1.05] md:leading-[1.02] tracking-[0.005em] text-[clamp(22px,5.5vw,28px)] md:text-[clamp(26px,3vw,46px)]">
           {value.name}
         </h3>
-        <p
-          className="font-sans text-black leading-[1.5]"
-          style={{ fontSize: "clamp(17px, 1.65vw, 24px)", fontWeight: 500 }}
-        >
+        <p className="font-sans text-black leading-[1.55] font-medium text-[15px] md:text-[clamp(17px,1.65vw,24px)]">
           {value.desc}
         </p>
       </div>

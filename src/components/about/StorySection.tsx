@@ -344,7 +344,6 @@ export default function StorySection({ about }: Props) {
   // re-arm the trigger.
   const videoSnapRef = useRef(null as HTMLDivElement | null);
   const videoFrameRef = useRef(null as HTMLDivElement | null);
-  const entitiesRef = useRef(null as HTMLDivElement | null);
   useEffect(() => {
     let raf = 0;
     let snapAnimRaf = 0;
@@ -416,63 +415,11 @@ export default function StorySection({ about }: Props) {
       lastY = window.scrollY;
     }
 
-    // Mobile — two-stage snap. Stage 1: when the 16:9 video rises into
-    // view it locks to the VERTICAL CENTER of the screen (video alone).
-    // Stage 2: a small further scroll down jumps the entity cards
-    // (Bentala Project & Studio) straight to the top. Scrolling back up
-    // reverses: entities → video centered → hero. A dead-zone around the
-    // centered position keeps it from oscillating.
-    function checkMobile() {
-      const frame = videoFrameRef.current;
-      if (!frame) return;
-      const vh = window.innerHeight || 1;
-      const vr = frame.getBoundingClientRect();
-      const vCenter = vr.top + vr.height / 2; // video midpoint in viewport
-      const down = window.scrollY > lastY + 1;
-      const up = window.scrollY < lastY - 1;
-      const NAV = 76; // clear the fixed navbar when parking entities at top
-
-      if (armed && !snapping) {
-        if (down) {
-          // video below center, rising → center it
-          if (vCenter > vh * 0.55 && vCenter < vh * 0.96) {
-            armed = false;
-            animateScrollTo(window.scrollY + (vCenter - vh / 2), 420);
-          }
-          // pushed a little past center → entities to the top. Only
-          // while the video centre is still in the upper part of the
-          // viewport (0.05–0.45vh); once it has scrolled above that we
-          // RELEASE so the user can keep scrolling down past the entity
-          // cards into the next section (no re-snap trap).
-          else if (
-            entitiesRef.current &&
-            vCenter <= vh * 0.45 &&
-            vCenter > vh * 0.05
-          ) {
-            armed = false;
-            const er = entitiesRef.current.getBoundingClientRect();
-            animateScrollTo(window.scrollY + er.top - NAV, 480);
-          }
-        } else if (up) {
-          // coming back up from entities → re-center the video
-          if (vCenter < vh * 0.45 && vr.bottom > vh * 0.15) {
-            armed = false;
-            animateScrollTo(window.scrollY + (vCenter - vh / 2), 420);
-          }
-          // above the centered video → glide back to the hero
-          else if (vCenter > vh * 0.55 && vCenter < vh * 1.2 && window.scrollY > 0) {
-            armed = false;
-            animateScrollTo(0, 450);
-          }
-        }
-      }
-
-      // Re-arm whenever settled (no snap in flight). The 0.45–0.55
-      // dead-zone above means the centered resting state fires nothing,
-      // so re-arming here just readies the next gesture.
-      if (!armed && !snapping) armed = true;
-      lastY = window.scrollY;
-    }
+    // Mobile no longer uses a JS snap — it fought the phone's native
+    // momentum scroll and felt janky. Instead the layout uses native CSS
+    // scroll-snap (video centered, entity cards snap to top), which the
+    // browser drives smoothly together with inertial scrolling. Only the
+    // zoom (below) runs on mobile.
 
     // Scroll-linked zoom: the video frame is largest (scale 1) when it
     // sits at the vertical center and shrinks toward the edges, so it
@@ -498,7 +445,8 @@ export default function StorySection({ about }: Props) {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         updateZoom();
-        (isMobile() ? checkMobile : checkDesktop)();
+        // Desktop keeps the JS snap; mobile relies on native CSS snap.
+        if (!isMobile()) checkDesktop();
       });
     }
     // Set the initial scale before the first scroll so it doesn't pop.
@@ -705,7 +653,7 @@ export default function StorySection({ about }: Props) {
                 screen shows only the video. Desktop: inline 16:9 card as
                 before. */}
             <RevealOnScroll delay={80} className="block">
-              <div className="flex items-center justify-center min-h-[100svh] md:block md:min-h-0">
+              <div className="snap-center flex items-center justify-center min-h-[100svh] md:block md:min-h-0">
                 <div
                   ref={videoFrameRef}
                   className="relative w-full bg-black overflow-hidden rounded-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.7)] aspect-[16/9] will-change-transform"
@@ -721,8 +669,7 @@ export default function StorySection({ about }: Props) {
                 edges to reinforce the duality. On mobile this is the
                 stage-2 snap target (jumps to the top after the video). */}
             <div
-              ref={entitiesRef}
-              className="scroll-mt-[76px] grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6"
+              className="snap-start scroll-mt-[76px] grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6"
             >
               {entities.map((entity, i) => (
                 <RevealOnScroll
