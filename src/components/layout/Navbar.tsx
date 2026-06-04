@@ -62,7 +62,7 @@ export default function Navbar({
     .map(({ href, label }) => ({ href, label }));
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[999] flex items-center justify-between px-5 md:px-[52px] py-[22px]">
+    <nav className="fixed top-0 left-0 right-0 z-[999] flex items-center justify-between px-5 md:px-[52px] py-3 md:py-[22px]">
       {/* Glass background layer — fades in on scroll. The
           semi-transparent alpha + backdrop-blur lets the navbar
           show hero/intro content blurred behind it (preserves the
@@ -96,7 +96,8 @@ export default function Navbar({
             alt="Bentala Studio"
             height={64}
             width={220}
-            style={{ height: 64, width: "auto", maxWidth: 260, objectFit: "contain" }}
+            className="h-11 md:h-16 w-auto object-contain"
+            style={{ maxWidth: 260 }}
           />
         ) : (
           <Image
@@ -104,7 +105,7 @@ export default function Navbar({
             alt="Bentala Studio"
             height={64}
             width={220}
-            className="object-contain"
+            className="object-contain h-11 md:h-16 w-auto"
           />
         )}
       </Link>

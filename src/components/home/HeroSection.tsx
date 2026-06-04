@@ -17,6 +17,21 @@ function sanitizeHeadline(html: string): string {
   return sanitizeHtml(html, HEADLINE_SANITIZE_OPTS);
 }
 
+// The admin's Tiptap editor stores absolute `font-size: Npx` on the
+// headline/subtitle spans (e.g. 128px). Those fixed sizes don't scale,
+// so on phones the copy overflows the viewport. Rewrite each to
+// `min(Npx, (N/divisor)vw)`: identical to the original px on wide
+// screens (where the vw term is larger), but shrinking proportionally
+// once the viewport gets narrow — so the size hierarchy is preserved
+// while the text always fits. Larger divisor = smaller on mobile.
+function responsiveFontSizes(html: string, divisor: number): string {
+  return html.replace(
+    /font-size:\s*([\d.]+)px/gi,
+    (_m, px) =>
+      `font-size:min(${px}px, ${(Number(px) / divisor).toFixed(2)}vw)`,
+  );
+}
+
 interface Props {
   hero: HeroData;
   services: Service[];
@@ -55,13 +70,17 @@ export default function HeroSection({
   const safeHeadline = useMemo(() => {
     // Convert plain newlines into <br> so admin's multi-line input is preserved.
     const withBreaks = (hero.headline ?? "").replace(/\r\n|\n/g, "<br>");
-    return sanitizeHeadline(withBreaks);
+    // divisor 10 → a 128px headline lands at ~50px on a 390px phone
+    // (fits) and stays 128px on desktops wider than ~1000px.
+    return responsiveFontSizes(sanitizeHeadline(withBreaks), 10);
   }, [hero.headline]);
 
   const safeSubtitle = useMemo(() => {
     // Subtitle is now rich HTML too (from the same Tiptap editor).
     const withBreaks = (hero.subtitle ?? "").replace(/\r\n|\n/g, "<br>");
-    return sanitizeHeadline(withBreaks);
+    // divisor 4.9 → a 20px subtitle stays 20px on desktop/tablet and
+    // eases down to ~16px on a 390px phone.
+    return responsiveFontSizes(sanitizeHeadline(withBreaks), 4.9);
   }, [hero.subtitle]);
 
   // Responsive headline size. Absolute floor (20px) + 5vw scaling
@@ -406,7 +425,7 @@ function SanitizedHeadline({ html, style }: { html: string; style: React.CSSProp
 function SanitizedSubtitle({ html, style }: { html: string; style: React.CSSProperties }) {
   return (
     <div
-      className="font-normal max-w-[560px] mx-auto mt-6 mb-10 leading-[1.75] animate-fade-up animate-fade-up-delay-2 [text-shadow:0_1px_20px_rgba(0,0,0,1),0_0_40px_rgba(0,0,0,0.8)]"
+      className="font-normal max-w-[88vw] sm:max-w-[560px] mx-auto mt-4 md:mt-6 mb-7 md:mb-10 leading-[1.55] md:leading-[1.75] animate-fade-up animate-fade-up-delay-2 [text-shadow:0_1px_20px_rgba(0,0,0,1),0_0_40px_rgba(0,0,0,0.8)]"
       style={style}
       dangerouslySetInnerHTML={{ __html: html }}
     />
